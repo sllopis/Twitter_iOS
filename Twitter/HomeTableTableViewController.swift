@@ -22,8 +22,10 @@ class HomeTableTableViewController: UITableViewController {
         
         myRefreshControl.addTarget(self, action: #selector(loadTweet), for: .valueChanged)
         
-        tableView.refreshControl = myRefreshControl
-        
+        self.tableView.refreshControl = myRefreshControl
+        self.tableView.rowHeight = UITableView.automaticDimension
+        self.tableView.estimatedRowHeight = 150
+        self.tableView.allowsSelection = false;
         
         // Uncomment the following line to preserve selection between presentations
         // self.clearsSelectionOnViewWillAppear = false
@@ -32,12 +34,17 @@ class HomeTableTableViewController: UITableViewController {
         // self.navigationItem.rightBarButtonItem = self.editButtonItem
     }
     
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(true)
+        loadTweet()
+    }
+    
     @objc func loadTweet(){
         numberOfTweet = 20
         let myUrl = "https://api.twitter.com/1.1/statuses/home_timeline.json"
         let myParams = ["count": numberOfTweet]
         
-        TwitterAPICaller.client?.getDictionariesRequest(url: myUrl, parameters: myParams, success: { (tweets: [NSDictionary]) in
+        TwitterAPICaller.client?.getDictionariesRequest(url: myUrl, parameters: myParams as [String : Any], success: { (tweets: [NSDictionary]) in
             
             
             self.tweetArray.removeAll()
@@ -52,7 +59,7 @@ class HomeTableTableViewController: UITableViewController {
             self.myRefreshControl.endRefreshing()
             
         }, failure: { (Error) in
-            print("Could not retrieve tweets")
+            print("Could not retrieve tweets \(Error)")
         })
     }
     
@@ -65,11 +72,9 @@ class HomeTableTableViewController: UITableViewController {
         numberOfTweet = numberOfTweet + 20
         let myParams = ["count": numberOfTweet]
         
-        TwitterAPICaller.client?.getDictionariesRequest(url: myUrl, parameters: myParams, success: { (tweets: [NSDictionary]) in
-            
+        TwitterAPICaller.client?.getDictionariesRequest(url: myUrl, parameters: myParams as [String : Any], success: { (tweets: [NSDictionary]) in
             
             self.tweetArray.removeAll()
-            
             
             for tweet in tweets {
                 self.tweetArray.append(tweet)
@@ -80,13 +85,9 @@ class HomeTableTableViewController: UITableViewController {
             self.myRefreshControl.endRefreshing()
             
         }, failure: { (Error) in
-            print("Could not retrieve tweets")
+            print("Could not retrieve tweets \(Error)")
         })
-        
-        
     }
-    
-    
     
     override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
         if indexPath.row + 1 == tweetArray.count {
@@ -94,15 +95,12 @@ class HomeTableTableViewController: UITableViewController {
         }
     }
     
-    
-    
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "tweetCell", for: indexPath) as! TweetCellTableViewCell
         
         
         let user = tweetArray[indexPath.row]["user"] as! NSDictionary
-        
         
         cell.userNameLabel.text = user["name"] as? String
         cell.tweetContent.text = tweetArray[indexPath.row]["text"] as? String
@@ -112,9 +110,19 @@ class HomeTableTableViewController: UITableViewController {
         
         if let imageData = data {
             cell.profileImageView.image = UIImage(data: imageData)
+            cell.profileImageView.layer.cornerRadius = cell.profileImageView.frame.size.width / 2;
+            
         }
         
+        cell.setFavorite(tweetArray[indexPath.row]["favorited"] as! Bool)
+        
+        cell.tweetId = tweetArray[indexPath.row]["id"] as! Int
+        
+        cell.setRetweeted(tweetArray[indexPath.row]["retweeted"] as! Bool)
+        
+        
         return cell
+        
         
     }
     
